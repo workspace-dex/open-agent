@@ -1,12 +1,17 @@
+
 <div align="center">
 
 ```
+
 ╔══════════════════════════════════════════════════════════╗
-║           OPEN-AGENT                                     ║
-║   A local AI agent that runs on your hardware.           ║
-║   Private. Minimal. Yours.                               ║
+║                     OPEN-AGENT                           ║
+║A cost efficient local AI agent that runs on your hardware║
+║              Private. Minimal. Yours.                    ║
 ╚══════════════════════════════════════════════════════════╝
 ```
+https://github.com/user-attachments/assets/ae768cb9-b41c-47c8-854f-82f4c99439fa
+
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
@@ -19,19 +24,16 @@
 
 </div>
 
----
-
 ## What is Open-Agent?
 
 Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
 
 It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
 
-**Default context: 21,000 tokens.** Adjustable up to 55,000 on a single 6 GB GPU.
+**Default context: 21,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
 
 Your data never leaves your machine.
 
----
 
 ## Why This Exists
 
@@ -45,7 +47,6 @@ The other thing local agents get wrong is context. They load skills, memories, b
 
 Open-Agent uses lazy loading. The system prompt is ~60 words. Deeper instructions live in `SOUL.md` and only enter context when the query is complex enough to need them.
 
----
 
 ## How It Compares
 
@@ -57,10 +58,6 @@ Open-Agent uses lazy loading. The system prompt is ~60 words. Deeper instruction
 | **SOUL.md lazy loading** | ✅ | ✅ | ❌ | Partial |
 | **Auto context compression** | ✅ | ✅ | ✅ | ✅ |
 | **Built-in web search** | ✅ | ✅ | ✅ | ✅ |
-| **Obsidian vault integration** | ✅ | ❌ | ❌ | ❌ |
-| **RSS feeds (24 sources)** | ✅ | ❌ | ❌ | ❌ |
-| **Install size** | ~5 MB | ~200 MB | ~150 MB | ~80 MB |
-| **True streaming output** | ✅ | ✅ | ✅ | Partial |
 | **No API key required** | ✅ | Partial | Partial | Partial |
 
 OpenClaw and Hermes are powerful platforms with messaging gateways, multi-channel support, and large ecosystems. They're built for a full-time AI assistant running across Telegram, Discord, and WhatsApp. Open-Agent is built for people who want to run a capable agent in a terminal, on real hardware, right now.
@@ -105,7 +102,7 @@ python agent.py
 ### Download a model
 
 ```bash
-# Recommended (fits in 6 GB VRAM with 55k context)
+# Recommended (fits in 6 GB VRAM with high context windows)
 huggingface-cli download bartowski/gemma-4-E4B-it-GGUF \
   --include "gemma-4-E4B-it-Q4_K_M.gguf" \
   --local-dir ~/models
@@ -242,16 +239,12 @@ To change the agent's personality or research style, edit `SOUL.md`. No code nee
 | Model | VRAM | Speed | Notes |
 |---|---|---|---|
 | **Gemma-4-E4B-IT-Q4_K_M** ⭐ | ~2.5 GB | ~45 t/s | Best agentic discipline at 4B |
-| **Phi-4-mini-instruct-Q4_K_M** | ~2.5 GB | ~50 t/s | Excellent tool calling, 128K context |
+| **Qwen-3.5-9B-Q3_K_M** | ~4.5 GB | ~35 t/s | Excellent tool calling and reasoning, 264K context |
 | **Llama 3.2 3B Q4_K_M** | ~2.0 GB | ~80 t/s | Fastest, for simple tasks |
 
-### Qwen 3.5 4B
+### Qwen 3.5
 
 Capable model, but thinking mode can cause excessive tool calls. If you try it, add `--chat-template-kwargs '{"enable_thinking":false}'` to your llama-server flags.
-
-### For 8 GB VRAM
-
-Qwen 3.5 9B Q4_K_M or Gemma-4-26B-A4B (MoE, 4B active params). Both run with 32K context.
 
 ---
 
