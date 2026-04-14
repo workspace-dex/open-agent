@@ -1,0 +1,36 @@
+# Runtime
+agent_history.json
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Python packaging
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets / config overrides
+.env
+*.local
+
+# Model files (don't commit GGUFs)
+*.gguf
+models/
+
+# Logs
+*.log
