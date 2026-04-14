@@ -1,17 +1,14 @@
+## What is Open-Agent?
 
-<div align="center">
+Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
 
-```
+It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
 
-╔══════════════════════════════════════════════════════════╗
-║                     OPEN-AGENT                           ║
-║A cost efficient local AI agent that runs on your hardware║
-║              Private. Minimal. Yours.                    ║
-╚══════════════════════════════════════════════════════════╝
-```
-https://github.com/user-attachments/assets/ae768cb9-b41c-47c8-854f-82f4c99439fa
+**Default context: 21,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
 
+Your data never leaves your machine.
 
+![open-agent](https://github.com/user-attachments/assets/df878264-b594-4c5b-88a8-71bbdb6a3783)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
@@ -23,16 +20,6 @@ https://github.com/user-attachments/assets/ae768cb9-b41c-47c8-854f-82f4c99439fa
 [Quick Start](#quick-start) · [Why This Exists](#why-this-exists) · [Tools](#built-in-tools) · [Model Guide](#model-guide) · [Philosophy](#philosophy)
 
 </div>
-
-## What is Open-Agent?
-
-Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
-
-It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
-
-**Default context: 21,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
-
-Your data never leaves your machine.
 
 
 ## Why This Exists
