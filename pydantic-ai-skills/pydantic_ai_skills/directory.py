@@ -1,0 +1,516 @@
+"""Filesystem-based skill discovery and management.
+
+This module provides [`SkillsDirectory`][pydantic_ai_skills.SkillsDirectory]
+for discovering and loading skills from a filesystem directory.
+
+Supports nested skill directories with configurable depth limits and provides
+internal helper functions for skill validation, metadata parsing, and resource/script discovery.
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import warnings
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from .exceptions import (
+    SkillNotFoundError,
+    SkillValidationError,
+)
+from .local import (
+    CallableSkillScriptExecutor,
+    LocalSkillScriptExecutor,
+    create_file_based_resource,
+    create_file_based_script,
+)
+from .types import Skill, SkillResource, SkillScript
+
+_SUPPORTED_SCRIPT_EXTENSIONS = {'.py', '.sh', '.bash', '.zsh', '.fish', '.ps1', '.bat', '.cmd'}
+_WINDOWS_EXECUTABLE_EXTENSIONS = {'.exe', '.bat', '.cmd', '.com', '.ps1'}
+_IGNORED_SCRIPT_NAMES = {'__init__.py', 'SKILL.md'}
+
+
+def _is_script_candidate(script_file: Path) -> bool:
+    """Check if a file should be treated as a script."""
+    if script_file.name in _IGNORED_SCRIPT_NAMES or not script_file.is_file():
+        return False
+
+    suffix = script_file.suffix.lower()
+    if suffix in _SUPPORTED_SCRIPT_EXTENSIONS:
+        return True
+
+    if os.name == 'nt':
+        return suffix in _WINDOWS_EXECUTABLE_EXTENSIONS
+
+    try:
+        return bool(script_file.stat().st_mode & 0o111)
+    except OSError:
+        return False
+
+
+def _iter_script_directories(skill_folder: Path) -> list[Path]:
+    """Return directories to scan for scripts."""
+    scripts_dir = skill_folder / 'scripts'
+    if scripts_dir.is_dir():
+        return [skill_folder, scripts_dir]
+    return [skill_folder]
+
+
+def _resolve_script_path(script_file: Path, skill_folder_resolved: Path) -> Path | None:
+    """Resolve script path and reject symlink escapes."""
+    resolved_path = script_file.resolve()
+    try:
+        resolved_path.relative_to(skill_folder_resolved)
+    except ValueError:
+        warnings.warn(
+            f"Script '{script_file}' resolves outside skill directory (symlink escape detected). Skipping.",
+            UserWarning,
+            stacklevel=4,
+        )
+        return None
+    return resolved_path
+
+
+__all__ = ['SkillsDirectory', 'discover_skills', 'parse_skill_md', 'validate_skill_metadata']
+
+# agentskills.io naming convention: lowercase letters, numbers, and hyphens only (no consecutive hyphens)
+SKILL_NAME_PATTERN = re.compile(r'^[a-z0-9]+(-[a-z0-9]+)*$')
+RESERVED_WORDS = {'anthropic', 'claude'}
+
+
+def validate_skill_metadata(
+    frontmatter: dict[str, Any],
+    instructions: str,
+    uri: str | None = None,
+) -> bool:
+    """Validate skill metadata against Anthropic's requirements.
+
+    Emits warnings for any validation issues found.
+
+    Args:
+        frontmatter: Parsed YAML frontmatter.
+        instructions: The skill instructions content.
+        uri: Optional URI or path identifying the skill source for diagnostics.
+
+    Returns:
+        True if validation passed with no issues, False if warnings were emitted.
+    """
+    is_valid = True
+    name = frontmatter.get('name', '')
+    description = frontmatter.get('description', '')
+    location = f' ({uri})' if uri else ''
+
+    # Validate name format
+    if name:
+        if len(name) > 64:
+            warnings.warn(
+                f"Skill name '{name}'{location} exceeds 64 characters ({len(name)} chars) recommendation."
+                f' Consider shortening it.',
+                UserWarning,
+                stacklevel=2,
+            )
+            is_valid = False
+        elif not SKILL_NAME_PATTERN.match(name):
+            warnings.warn(
+                f"Skill name '{name}'{location} should contain only lowercase letters, numbers, and hyphens",
+                UserWarning,
+                stacklevel=2,
+            )
+            is_valid = False
+        # Check for reserved words
+        for reserved in RESERVED_WORDS:
+            if reserved in name:
+                warnings.warn(
+                    f"Skill name '{name}'{location} contains reserved word '{reserved}'",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                is_valid = False
+
+    # Validate description
+    if description and len(description) > 1024:
+        warnings.warn(
+            f"Skill '{name}'{location}: description exceeds 1024 characters ({len(description)} chars)",
+            UserWarning,
+            stacklevel=2,
+        )
+        is_valid = False
+
+    # Validate compatibility (if provided)
+    compatibility = frontmatter.get('compatibility', '')
+    if compatibility and len(compatibility) > 500:
+        warnings.warn(
+            f"Skill '{name}'{location}: compatibility exceeds 500 characters ({len(compatibility)} chars)",
+            UserWarning,
+            stacklevel=2,
+        )
+        is_valid = False
+
+    # Validate instructions length (Anthropic recommends under 500 lines)
+    lines = instructions.split('\n')
+    if len(lines) > 500:
+        warnings.warn(
+            f"Skill '{name}'{location}: SKILL.md body exceeds recommended 500 lines ({len(lines)} lines). "
+            f'Consider splitting into separate resource files.',
+            UserWarning,
+            stacklevel=2,
+        )
+        is_valid = False
+
+    return is_valid
+
+
+def parse_skill_md(content: str) -> tuple[dict[str, Any], str]:
+    """Parse a SKILL.md file into frontmatter and instructions.
+
+    Args:
+        content: Full content of the SKILL.md file.
+
+    Returns:
+        Tuple of (frontmatter_dict, instructions_markdown).
+
+    Raises:
+        SkillValidationError: If YAML parsing fails.
+    """
+    frontmatter_pattern = r'^---\s*\n(.*?)^---\s*\n'
+    match = re.search(frontmatter_pattern, content, re.DOTALL | re.MULTILINE)
+
+    if not match:
+        return {}, content.strip()
+
+    frontmatter_yaml = match.group(1).strip()
+    instructions = content[match.end() :].strip()
+
+    if not frontmatter_yaml:
+        return {}, instructions
+
+    try:
+        frontmatter = yaml.safe_load(frontmatter_yaml)
+        return frontmatter, instructions
+    except yaml.YAMLError as e:
+        raise SkillValidationError(f'Failed to parse YAML frontmatter: {e}') from e
+
+
+def _discover_resources(skill_folder: Path) -> list[SkillResource]:
+    """Discover resource files in a skill folder.
+
+    Resources are text files other than SKILL.md in any subdirectory.
+    Supported: .md, .json, .yaml, .yml, .csv, .xml, .txt
+
+    Security validates that resolved paths remain within skill_folder
+    after symlink resolution to prevent traversal attacks.
+
+    Args:
+        skill_folder: Path to the skill directory.
+
+    Returns:
+        List of discovered SkillResource objects.
+    """
+    resources: list[SkillResource] = []
+    supported_extensions = ['.md', '.json', '.yaml', '.yml', '.csv', '.xml', '.txt']
+    skill_folder_resolved = skill_folder.resolve()
+
+    for extension in supported_extensions:
+        for resource_file in skill_folder.rglob(f'*{extension}'):
+            if resource_file.name.upper() != 'SKILL.MD':
+                resolved_path = resource_file.resolve()
+                try:
+                    resolved_path.relative_to(skill_folder_resolved)
+                except ValueError:
+                    warnings.warn(
+                        f"Resource '{resource_file}' resolves outside skill directory (symlink escape detected). Skipping.",
+                        UserWarning,
+                        stacklevel=2,
+                    )
+                    continue
+
+                rel_path = resource_file.relative_to(skill_folder)
+                name = rel_path.as_posix()
+                resources.append(
+                    create_file_based_resource(
+                        name=name,
+                        uri=str(resolved_path),
+                    )
+                )
+
+    return resources
+
+
+def _find_skill_files(root_dir: Path, max_depth: int | None) -> list[Path]:
+    """Find SKILL.md files with depth-limited search using glob patterns.
+
+    Args:
+        root_dir: Root directory to search from.
+        max_depth: Maximum depth to search. None for unlimited.
+
+    Returns:
+        List of paths to SKILL.md files.
+    """
+    if max_depth is None:
+        return list(root_dir.glob('**/SKILL.md'))
+
+    skill_files: list[Path] = []
+
+    for depth in range(max_depth + 1):
+        if depth == 0:
+            pattern = 'SKILL.md'
+        else:
+            pattern = '/'.join(['*'] * depth) + '/SKILL.md'
+
+        skill_files.extend(root_dir.glob(pattern))
+
+    return skill_files
+
+
+def _discover_scripts(
+    skill_folder: Path,
+    skill_name: str,
+    executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor,
+) -> list[SkillScript]:
+    """Discover executable scripts in a skill folder.
+
+    Looks for script files and executables in the root and scripts/ subdirectory.
+    Security validates that resolved paths remain within skill_folder
+    after symlink resolution to prevent traversal attacks.
+
+    Args:
+        skill_folder: Path to the skill directory.
+        skill_name: Name of the parent skill.
+        executor: Executor for running file-based scripts.
+
+    Returns:
+        List of discovered SkillScript objects.
+    """
+    scripts: list[SkillScript] = []
+    skill_folder_resolved = skill_folder.resolve()
+
+    for directory in _iter_script_directories(skill_folder):
+        for script_file in directory.iterdir():
+            if not _is_script_candidate(script_file):
+                continue
+
+            resolved_path = _resolve_script_path(script_file, skill_folder_resolved)
+            if resolved_path is None:
+                continue
+
+            scripts.append(
+                create_file_based_script(
+                    name=script_file.relative_to(skill_folder).as_posix(),
+                    uri=str(resolved_path),
+                    skill_name=skill_name,
+                    executor=executor,
+                )
+            )
+
+    return scripts
+
+
+def _load_skill_from_file(
+    skill_file: Path,
+    validate: bool,
+    script_executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor,
+) -> Skill | None:
+    """Parse and build a single :class:`Skill` from a SKILL.md file.
+
+    Args:
+        skill_file: Path to the SKILL.md file.
+        validate: Whether to validate skill structure.
+        script_executor: Executor used for file-based scripts.
+
+    Returns:
+        A :class:`Skill` instance, or ``None`` if the skill should be skipped.
+
+    Raises:
+        SkillValidationError: When validation fails and *validate* is ``True``.
+    """
+    skill_folder = skill_file.parent
+    content = skill_file.read_text(encoding='utf-8')
+    frontmatter, instructions = parse_skill_md(content)
+
+    name = frontmatter.get('name')
+    description = frontmatter.get('description', '')
+
+    if not name:
+        if validate:
+            warnings.warn(f'Skipping skill at {skill_file}: missing required "name" field.', UserWarning, stacklevel=3)
+            return None
+        else:
+            name = skill_folder.name
+
+    license_field = frontmatter.get('license')
+    compatibility_field = frontmatter.get('compatibility')
+    metadata = {k: v for k, v in frontmatter.items() if k not in ('name', 'description', 'license', 'compatibility')}
+
+    if validate:
+        validate_skill_metadata(frontmatter, instructions, uri=str(skill_folder.resolve()))
+
+    resources = _discover_resources(skill_folder)
+    scripts = _discover_scripts(skill_folder, name, script_executor)
+
+    return Skill(
+        name=name,
+        description=description,
+        content=instructions,
+        license=license_field,
+        compatibility=compatibility_field,
+        uri=str(skill_folder.resolve()),
+        resources=resources,
+        scripts=scripts,
+        metadata=metadata if metadata else None,
+    )
+
+
+def discover_skills(
+    path: str | Path,
+    validate: bool = True,
+    max_depth: int | None = 3,
+    script_executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor | None = None,
+) -> list[Skill]:
+    """Discover skills from a filesystem directory.
+
+    Searches for SKILL.md files in the given directory and loads
+    skill metadata and structure.
+
+    Args:
+        path: Directory path to search for skills.
+        validate: Whether to validate skill structure (requires name and description).
+        max_depth: Maximum depth to search for SKILL.md files. None for unlimited.
+            Default is 3 levels deep to prevent performance issues with large trees.
+        script_executor: Optional custom script executor for file-based scripts.
+
+    Returns:
+        List of discovered Skill objects.
+
+    Raises:
+        SkillValidationError: If validation is enabled and a skill is invalid.
+    """
+    skills: list[Skill] = []
+    dir_path = Path(path).expanduser().resolve()
+
+    if not dir_path.exists():
+        return skills
+
+    if not dir_path.is_dir():
+        return skills
+
+    executor = script_executor or LocalSkillScriptExecutor()
+    skill_files = _find_skill_files(dir_path, max_depth)
+    for skill_file in skill_files:
+        try:
+            skill = _load_skill_from_file(skill_file, validate, executor)
+            if skill is not None:
+                skills.append(skill)
+        except SkillValidationError as sve:
+            if validate:
+                raise
+            else:
+                warnings.warn(f'Skipping invalid skill at {skill_file}: {sve}', UserWarning, stacklevel=2)
+        except (OSError, ValueError, KeyError) as e:
+            raise SkillValidationError(f'Failed to load skill from {skill_file}: {e}') from e
+
+    return skills
+
+
+class SkillsDirectory:
+    """Skill source for a single filesystem directory.
+
+    Discovers and loads skills from a local directory by finding SKILL.md files
+    and automatically discovering associated resources and scripts.
+
+    File-based scripts are executed using the configured script executor
+    (LocalSkillScriptExecutor or CallableSkillScriptExecutor).
+    """
+
+    def __init__(
+        self,
+        *,
+        path: str | Path,
+        validate: bool = True,
+        max_depth: int | None = 3,
+        script_executor: LocalSkillScriptExecutor | CallableSkillScriptExecutor | None = None,
+    ) -> None:
+        """Initialize the skills directory source.
+
+        Args:
+            path: Directory path to search for skills.
+            validate: Validate skill structure on discovery.
+            max_depth: Maximum depth for skill discovery (None for unlimited).
+            script_executor: Optional custom script executor for file-based scripts.
+                Can be LocalSkillScriptExecutor or CallableSkillScriptExecutor.
+                If None, uses LocalSkillScriptExecutor with default settings.
+
+        Example:
+            ```python
+            # Discovery mode - single directory
+            source = SkillsDirectory(path="./skills")
+
+            # With custom executor
+            from pydantic_ai.toolsets.skills import LocalSkillScriptExecutor
+
+            executor = LocalSkillScriptExecutor(timeout=60)
+            source = SkillsDirectory(path="./skills", script_executor=executor)
+
+            # With callable executor
+            from pydantic_ai.toolsets.skills import CallableSkillScriptExecutor
+
+            async def my_executor(script, args=None, skill_uri=None):
+                return f"Executed {script.name}"
+
+            executor = CallableSkillScriptExecutor(func=my_executor)
+            source = SkillsDirectory(path="./skills", script_executor=executor)
+            ```
+        """
+        self._path = Path(path).expanduser().resolve()
+        self._validate = validate
+        self._max_depth = max_depth
+        self._script_executor = script_executor or LocalSkillScriptExecutor()
+
+        # Discover skills from directory
+        self._skills: dict[str, Skill] = self.get_skills()
+
+    def get_skills(self) -> dict[str, Skill]:
+        """Get all skills from this source.
+
+        Returns:
+            Dictionary of skill URI to Skill object.
+        """
+        skills = discover_skills(
+            path=self._path,
+            validate=self._validate,
+            max_depth=self._max_depth,
+            script_executor=self._script_executor,
+        )
+
+        return {skill.uri: skill for skill in skills if skill.uri is not None}
+
+    @property
+    def skills(self) -> dict[str, Skill]:
+        """Get the dictionary of loaded skills.
+
+        Returns:
+            Dictionary mapping skill URI to Skill objects.
+        """
+        return self._skills
+
+    def load_skill(self, skill_uri: str) -> Skill:
+        """Load full instructions for a skill.
+
+        Args:
+            skill_uri: URI of the skill to load (skill name for filesystem skills).
+
+        Returns:
+            Loaded Skill object.
+
+        Raises:
+            SkillNotFoundError: If skill is not found.
+        """
+        skill = self._skills.get(skill_uri)
+
+        if skill is None:
+            raise SkillNotFoundError(f"Skill '{skill_uri}' not found in {self._path.as_posix()}.")
+
+        return skill

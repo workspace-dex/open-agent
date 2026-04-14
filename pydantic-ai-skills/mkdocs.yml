@@ -1,0 +1,171 @@
+site_name: Pydantic AI - Agent Skills
+site_description: A standardized, composable framework for building and managing Agent Skills within the Pydantic AI ecosystem
+site_url: https://dougtrajano.github.io/pydantic-ai-skills
+
+repo_name: pydantic-ai-skills
+repo_url: https://github.com/dougtrajano/pydantic-ai-skills
+edit_uri: edit/main/docs/
+
+copyright: © Douglas Trajano 2025 to present. Licensed under the MIT License.
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Quick Start: quick-start.md
+  - User Guide:
+      - Core Concepts: concepts.md
+      - Creating Skills: creating-skills.md
+      - Programmatic Skills: programmatic-skills.md
+      - Skill Registries: registries.md
+      - Advanced Features: advanced.md
+      - Implementation Patterns: patterns.md
+  - Security & Deployment: security.md
+  - API Reference:
+      - api/toolset.md
+      - api/capability.md
+      - api/types.md
+      - api/registries.md
+      - api/exceptions.md
+  - Contributing: contributing.md
+
+extra:
+  # hide the "Made with Material for MkDocs" message
+  generator: false
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/douglas-trajano
+      name: Douglas Trajano - LinkedIn
+    - icon: fontawesome/brands/medium
+      link: https://dougtrajano.medium.com/
+      name: Douglas Trajano - Medium
+    - icon: fontawesome/brands/github
+      link: https://github.com/DougTrajano
+      name: DougTrajano - GitHub
+    - icon: fontawesome/brands/kaggle
+      link: https://www.kaggle.com/dougtrajano
+      name: Douglas Trajano - Kaggle
+
+theme:
+  name: material
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme)"
+      primary: pink
+      accent: pink
+      toggle:
+        icon: material/brightness-auto
+        name: "Switch to light mode"
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: pink
+      accent: pink
+      toggle:
+        icon: material/brightness-7
+        name: "Switch to dark mode"
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: pink
+      accent: pink
+      toggle:
+        icon: material/brightness-4
+        name: "Switch to system preference"
+  features:
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - navigation.path
+    - navigation.indexes
+    - navigation.sections
+    - navigation.tracking
+    - toc.follow
+    - announce.dismiss
+
+# https://www.mkdocs.org/user-guide/configuration/#validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+extra_css:
+  - "extra/tweaks.css"
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.mark
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tilde
+  - tables
+  - sane_lists # this means you can start a list from any number
+  - pymdownx.highlight:
+      pygments_lang_class: true
+  - pymdownx.extra:
+      pymdownx.superfences:
+        custom_fences:
+          - name: mermaid
+            class: mermaid
+            format: pymdownx.superfences.fence_code_format
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      options:
+        custom_icons:
+          - docs/.overrides/.icons
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+watch:
+  - pydantic_ai_skills
+  - examples
+
+plugins:
+  - search
+  - tooltips
+  - section-index
+  - git-revision-date-localized
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [pydantic_ai_skills]
+          options:
+            relative_crossrefs: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            group_by_category: false
+            heading_level: 3
+            docstring_style: google
+  - llmstxt:
+      full_output: llms-full.txt
+      markdown_description: |
+        A lightweight Python library implementing the Agent Skills specification (https://agentskills.io/specification) for Pydantic AI.
+        Skills are modular collections of instructions, scripts, and resources that extend AI agent
+        capabilities through progressive disclosure (load-on-demand to reduce token usage).
+      sections:
+        Documentation:
+          - "*.md"
+          - "api/*.md"
