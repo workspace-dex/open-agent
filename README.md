@@ -4,7 +4,7 @@ Open-Agent is a local AI agent that runs entirely on your machine. One Python fi
 
 It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
 
-**Default context: 21,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
+**Default context: 16,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
 
 Your data never leaves your machine.
 
