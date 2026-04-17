@@ -1,4 +1,4 @@
-## What is Open-Agent?
+<img width="1879" height="267" alt="screenshot-2026-04-17_19-44-56" src="https://github.com/user-attachments/assets/5303ee6a-d368-429b-995c-20cbe91dc1ab" />
 
 Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
 
