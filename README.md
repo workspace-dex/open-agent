@@ -1,10 +1,8 @@
-<img width="1879" height="267" alt="screenshot-2026-04-17_19-44-56" src="https://github.com/user-attachments/assets/5303ee6a-d368-429b-995c-20cbe91dc1ab" />
-
 Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
 
-It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
-
 **Default context: 16,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
+
+It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
 
 Your data never leaves your machine.
 
@@ -133,6 +131,7 @@ docker compose up -d searxng
 ```
 
 ---
+<img width="1879" height="267" alt="screenshot-2026-04-17_19-44-56" src="https://github.com/user-attachments/assets/5303ee6a-d368-429b-995c-20cbe91dc1ab" />
 
 ## Built-in Tools
 
@@ -149,7 +148,6 @@ docker compose up -d searxng
 | `read_obsidian_note` | Read a specific note |
 | `write_obsidian_note` | Create or append to notes |
 
----
 
 ## Obsidian Integration
 
@@ -161,7 +159,6 @@ OBSIDIAN_VAULT_PATH = Path("/your/vault/path")
 
 The agent can search notes, read them on demand, and write back. Ask it to "check my notes on X" or "log this idea to my inbox note."
 
----
 
 ## Adding Your Own Tools
 
@@ -189,7 +186,6 @@ async def generate_audio(ctx: RunContext, text: str, voice: str = "default") -> 
 
 Now you can say *"Generate dialogue for scene 3 in the gravel voice"* and the agent handles it. This is the core idea: your agent, connected to your actual workflow. The LLM routes. Your tools work.
 
----
 
 ## SOUL.md
 
@@ -200,8 +196,6 @@ The system prompt is ~60 words. Extended behavioral instructions — research pr
 Simple queries never load SOUL.md. You pay for exactly what you use.
 
 To change the agent's personality or research style, edit `SOUL.md`. No code needed.
-
----
 
 ## Slash Commands
 
@@ -231,7 +225,7 @@ To change the agent's personality or research style, edit `SOUL.md`. No code nee
 
 ### Qwen 3.5
 
-Capable model, but thinking mode can cause excessive tool calls. If you try it, add `--chat-template-kwargs '{"enable_thinking":false}'` to your llama-server flags.
+Capable model, but thinking mode can cause excessive tool calls. If you try it, add `--reasoning-budget 460 #(or 0 for non-thinking)'` to your llama-server flags.
 
 ---
 
@@ -249,8 +243,6 @@ open-agent/
 └── LICENSE
 ```
 
----
-
 ## Philosophy
 
 Open-Agent follows one rule: don't add a feature unless removing it makes the agent meaningfully worse.
@@ -259,7 +251,6 @@ Other agents compete on feature count. Open-Agent competes on signal-to-noise ra
 
 The 6 GB VRAM constraint is not a limitation. It is the design target. Everything in the codebase exists to serve that target.
 
----
 
 ## Contributing
 
@@ -270,7 +261,6 @@ The 6 GB VRAM constraint is not a limitation. It is the design target. Everythin
 
 Keep it minimal.
 
----
 
 ## License
 
