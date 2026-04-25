@@ -1,6 +1,6 @@
 Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
 
-**Default context: 16,000 tokens.** Adjustable up to 64,000+ on a single 6 GB GPU.
+**Default context: 16,000 tokens.** Adjustable up to 64,000+ (on a single 6 GB GPU).
 
 It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
 
@@ -46,6 +46,43 @@ Open-Agent uses lazy loading. The system prompt is ~60 words. Deeper instruction
 | **No API key required** | ✅ | Partial | Partial | Partial |
 
 OpenClaw and Hermes are powerful platforms with messaging gateways, multi-channel support, and large ecosystems. They're built for a full-time AI assistant running across Telegram, Discord, and WhatsApp. Open-Agent is built for people who want to run a capable agent in a terminal, on real hardware, right now.
+
+## 🧠 Token-Efficient Memory System
+
+Open-Agent is designed to be **highly token efficient**, making it ideal for local models.
+
+### How it works:
+
+- **Loaded 3 turns + summary**
+- `3 turns` → full conversations stored  
+- `1774 chars` → compressed past memory  
+
+### Rough token estimate:
+
+1774 / 4 ≈ ~440 tokens
+
+### Smart Auto-Compression
+
+Open-Agent uses a **two-tier memory system**:
+
+**Recent Context (High Fidelity)**
+   - Last 3 conversation turns stored fully
+
+**Compressed History (Long-Term Memory)**
+   - Older turns are automatically compressed into a summary
+
+This ensures:
+- Context stays **well below ~10k tokens**
+- No unnecessary token bloat
+- Stable performance on local LLMs
+
+### Why this matters
+
+Most agents fail due to:
+- context overflow
+- inefficient history handling
+
+Open-Agent solves this with **automatic, lightweight compression**, enabling long-running sessions without degrading performance.
 
 ---
 
