@@ -83,14 +83,20 @@ model    = OpenAIChatModel(model_name=MODEL_NAME, provider=provider)
 # Intentionally minimal — SOUL.md carries the deep behavioral layer.
 SYSTEM_PROMPT = """You are a fast, grounded local AI agent.
 
-RITUALS — before any real-world or time-sensitive query:
-1. run_terminal("date && echo '---' && uname -r") — anchor current time/system
+RITUALS — before any real-world, time-sensitive, or file-heavy query:
+1. run_terminal("date && echo '---' && uname -r") — anchor current time/system when freshness matters
 2. web_search if your knowledge might be stale (default: assume it is for anything < 2 years old)
 3. Confirm important facts across ≥2 search results before asserting
 
-TOOLS: web_search · smart_research · fetch_page · read_rss_by_name · run_terminal · read_file · write_file · load_soul · read_obsidian_note · write_obsidian_note
+TOOL-FIRST RULES:
+- If a tool is relevant, call it immediately.
+- Never narrate that you will execute something without actually using a tool.
+- For note, project, or vault questions, search first, then read the best matches, then answer.
+- For multi-file work, prefer batching or repeated reads over vague planning.
+- For complex tasks, call load_soul before reasoning.
 
-When asked about personal notes, projects, or ideas, aggressively use the Obsidian tools to search and read before answering.
+TOOLS: web_search · smart_research · fetch_page · read_rss_by_name · run_terminal · read_file · write_file · load_soul · search_obsidian · list_obsidian_files · read_obsidian_note · read_obsidian_batch · write_obsidian_note
+
 Be direct. Prefer Markdown. No filler phrases."""
 
 
@@ -131,6 +137,37 @@ def _est_tokens(text: str) -> int:
 
 def _safe_text(text: str) -> str:
     return text.encode("utf-8")[-6000:].decode("utf-8", errors="ignore")
+
+
+def _is_hidden_path(path: Path) -> bool:
+    return any(part.startswith(".") for part in path.parts)
+
+
+def _query_terms(query: str) -> list[str]:
+    terms = []
+    for raw in re.findall(r"[A-Za-z0-9_/-]+", query.lower()):
+        if len(raw) >= 4:
+            terms.append(raw)
+    return terms[:12]
+
+
+def _score_note_path(path: Path, query_terms: list[str]) -> int:
+    rel = str(path.relative_to(OBSIDIAN_VAULT_PATH)).lower()
+    stem = path.stem.lower()
+    score = 0
+    for term in query_terms:
+        if term in rel:
+            score += 4
+        if term in stem:
+            score += 3
+    return score
+
+
+def _truncate_text(text: str, limit: int = 2200) -> str:
+    text = re.sub(r"\r\n", "\n", text).strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit] + "\n... [truncated]"
 
 
 # ─────────────────────────── TOOLS ────────────────────────────────────────
@@ -254,6 +291,65 @@ async def write_file(ctx: RunContext, path: str, content: str) -> str:
     except Exception as e:
         _print_tool_result("write_file", str(e), ok=False)
         return f"Write error: {e}"
+
+
+@agent.tool
+async def list_obsidian_files(ctx: RunContext, root: str = "", limit: int = 60) -> str:
+    """List markdown files in the vault. Use before reading notes when you do not know exact names."""
+    root = root.strip()
+    _print_tool_call("list_obsidian_files", f"root={root or '.'}, limit={limit}")
+    try:
+        base = OBSIDIAN_VAULT_PATH / root if root else OBSIDIAN_VAULT_PATH
+        if not base.exists():
+            _print_tool_result("list_obsidian_files", f"Missing path: {base}", ok=False)
+            return f"Path '{base}' does not exist."
+
+        files = []
+        for p in base.rglob("*.md"):
+            if _is_hidden_path(p):
+                continue
+            try:
+                files.append(str(p.relative_to(OBSIDIAN_VAULT_PATH)))
+            except ValueError:
+                continue
+
+        files = sorted(files)[: max(1, min(limit, 200))]
+        _print_tool_result("list_obsidian_files", f"{len(files)} files")
+        return "Markdown files:\n" + "\n".join(f"- {f}" for f in files) if files else "No markdown files found."
+    except Exception as e:
+        _print_tool_result("list_obsidian_files", str(e), ok=False)
+        return f"List error: {e}"
+
+
+@agent.tool
+async def read_obsidian_batch(ctx: RunContext, note_names: list[str], max_chars_each: int = 6000) -> str:
+    """Read several notes at once. Useful for multi-file tasks and comparisons."""
+    limited = note_names[:8]
+    _print_tool_call("read_obsidian_batch", f"{len(limited)} notes")
+    try:
+        chunks = []
+        for note_name in limited:
+            nm = note_name.strip()
+            if not nm:
+                continue
+            if not nm.endswith(".md"):
+                nm += ".md"
+            matches = [m for m in OBSIDIAN_VAULT_PATH.rglob(nm) if not _is_hidden_path(m)]
+            if not matches:
+                chunks.append(f"## {nm}\nNot found.")
+                continue
+            target = matches[0]
+            content = target.read_text(encoding="utf-8", errors="ignore")
+            chunks.append(
+                f"## {target.relative_to(OBSIDIAN_VAULT_PATH)}\n"
+                f"{_truncate_text(content, max_chars_each)}"
+            )
+        merged = "\n\n---\n\n".join(chunks)
+        _print_tool_result("read_obsidian_batch", f"Read {len(chunks)} notes")
+        return merged or "No notes read."
+    except Exception as e:
+        _print_tool_result("read_obsidian_batch", str(e), ok=False)
+        return f"Batch read error: {e}"
 
 
 @agent.tool
@@ -593,6 +689,15 @@ class AgentSession:
         q = query.lower()
         return any(trigger in q for trigger in GROUNDING_TRIGGERS)
 
+    def _needs_vault_work(self, query: str) -> bool:
+        q = query.lower()
+        vault_terms = (
+            "obsidian", "vault", "note", "notes", "journal", "journals",
+            "file", "files", "markdown", ".md", "project", "projects",
+            "idea", "ideas", "document", "documents", "workspace", "work/"
+        )
+        return any(term in q for term in vault_terms)
+
     def _augment_query(self, query: str) -> str:
         hints = []
         if self._needs_grounding(query):
@@ -603,13 +708,86 @@ class AgentSession:
             hints.append(
                 "[Complex task detected: call load_soul before proceeding.]"
             )
+        if self._needs_vault_work(query):
+            hints.append(
+                "[Vault task detected: search_obsidian or list_obsidian_files first, then read matching notes or a batch before answering. Do not just describe the plan.]"
+            )
         return query + ("\n\n" + "\n".join(hints) if hints else "")
+
+    def _vault_preflight(self, query: str, max_files: int = 6) -> str:
+        """Deterministically gather relevant vault context before the model runs."""
+        if not OBSIDIAN_VAULT_PATH.exists() or not self._needs_vault_work(query):
+            return ""
+
+        q = query.lower()
+        terms = _query_terms(query)
+        candidates: list[tuple[int, Path]] = []
+
+        try:
+            for p in OBSIDIAN_VAULT_PATH.rglob("*.md"):
+                if _is_hidden_path(p):
+                    continue
+                rel = str(p.relative_to(OBSIDIAN_VAULT_PATH)).lower()
+                score = _score_note_path(p, terms)
+
+                if any(term in rel for term in terms):
+                    score += 2
+
+                # Light content scan to improve relevance without reading everything twice.
+                if score == 0:
+                    try:
+                        head = p.read_text(encoding="utf-8", errors="ignore")[:2500].lower()
+                        if any(term in head for term in terms):
+                            score = 1
+                    except Exception:
+                        pass
+
+                if score > 0:
+                    candidates.append((score, p))
+
+            if not candidates:
+                # Fall back to a small deterministic sample if nothing matched.
+                sample = []
+                for p in sorted(
+                    [p for p in OBSIDIAN_VAULT_PATH.rglob("*.md") if not _is_hidden_path(p)]
+                )[:max_files]:
+                    sample.append((0, p))
+                candidates = sample
+
+            candidates.sort(key=lambda item: (-item[0], str(item[1]).lower()))
+            chosen = [p for _, p in candidates[:max_files]]
+
+            sections = []
+            for p in chosen:
+                try:
+                    rel = p.relative_to(OBSIDIAN_VAULT_PATH)
+                    content = p.read_text(encoding="utf-8", errors="ignore")
+                    sections.append(
+                        f"[{rel}]\n{_truncate_text(content, 2200)}"
+                    )
+                except Exception as e:
+                    sections.append(f"[{p.name}]\nRead error: {e}")
+
+            if not sections:
+                return ""
+
+            return (
+                "Vault preflight context:\n"
+                "Use this concrete material before answering.\n\n"
+                + "\n\n---\n\n".join(sections)
+            )
+        except Exception as e:
+            return f"Vault preflight error: {e}"
 
     async def run(self, query: str) -> Optional[str]:
         console.print()
         console.rule(style="border")
 
-        augmented   = self._augment_query(query)
+        preflight = self._vault_preflight(query)
+        augmented  = self._augment_query(query)
+        if preflight:
+            augmented = f"{preflight}\n\nUser request:\n{augmented}"
+
         msg_history = self.history.to_messages()
         tok_est     = self.history.token_estimate + _est_tokens(augmented)
 
@@ -809,5 +987,8 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+
 
 
