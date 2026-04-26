@@ -6,7 +6,8 @@ It searches the web, runs terminal commands, reads and writes files, fetches RSS
 
 Your data never leaves your machine.
 
-![open-agent](https://github.com/user-attachments/assets/df878264-b594-4c5b-88a8-71bbdb6a3783)
+<img width="800" height="427" alt="open-agent" src="https://github.com/user-attachments/assets/158d0850-b836-409f-9ace-f24c46c422f8" />
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
