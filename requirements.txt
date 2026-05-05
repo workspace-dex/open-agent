@@ -1,0 +1,4 @@
+pydantic-ai>=0.0.14
+httpx>=0.27
+feedparser>=6.0
+rich>=13.0
