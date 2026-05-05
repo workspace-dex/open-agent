@@ -1,4 +1,4 @@
-Open-Agent. A private, powerful & minimal LLM harness.
+A private, powerful & minimal LLM harness.
 
 Allowing you to work in a stable and smooth environment with you Local LLMs. 
 
