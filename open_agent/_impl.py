@@ -773,13 +773,15 @@ rr = ResponseRenderer()
 #  TOOLS  (unchanged from original)
 # ══════════════════════════════════════════════════════════════════════════
 
-_tlocal = threading.local()
-
 def _get_http_client() -> httpx.AsyncClient:
-    client = getattr(_tlocal, 'http_client', None)
-    if client is not None:
-        return client
-    client = httpx.AsyncClient(
+    """Returns a fresh httpx.AsyncClient for every call.
+
+    Previously cached via threading.local(), but that caused the client to
+    hold a stale reference to a closed event loop after _run_sync() in
+    agent_loop.py closed its per-thread loop.  Each call now gets a fresh
+    client — the overhead is negligible for the request volume here.
+    """
+    return httpx.AsyncClient(
         timeout=10,
         follow_redirects=True,
         limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
@@ -789,9 +791,6 @@ def _get_http_client() -> httpx.AsyncClient:
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
     )
-    _tlocal.http_client = client
-    return client
-
 
 async def _extract_text_from_html(html: str, _url: str = "") -> str:
     if not html or len(html) < 100:
@@ -860,11 +859,6 @@ async def _extract_url(url: str) -> str:
         return await _extract_text_from_html(r.text, url)
     except Exception:
         return ""
-
-async def _close_http_clients():
-    client = getattr(_tlocal, 'http_client', None)
-    if client:
-        await client.aclose()
 
 @agent.tool
 async def web_search(ctx: RunContext, query: str) -> str:
@@ -1383,6 +1377,38 @@ async def search_obsidian(ctx: RunContext, query: str) -> str:
         td.done("search_obsidian", str(e)[:50], ok=False)
         return f"Error: {e}"
 
+@agent.tool
+async def wiki_query(ctx: RunContext, query: str) -> str:
+    """
+    Search the personal LLM Wiki knowledge base for a topic or question.
+    Use this when the user says 'use llm-wiki', 'check my wiki', 'look in my knowledge base',
+    or when answering from personal notes would be better than a web search.
+    Requires the llm_wiki desktop app to be running locally.
+    """
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "http://localhost:19827/query",
+                json={"query": query}
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return data.get("answer") or data.get("content") or str(data)
+    except httpx.ConnectError:
+        return "llm_wiki is not running. Please open the llm_wiki desktop app first."
+    except Exception as e:
+        return f"wiki_query error: {e}"
+
+@agent.tool
+async def wiki_ingest(ctx: RunContext, content: str, title: str = "") -> str:
+    """Ingest new content into the personal LLM Wiki knowledge base. Use when the user says
+    'add this to my wiki', 'save to my knowledge base', or 'ingest this into llm-wiki'."""
+    import httpx
+    payload = {"content": content, "title": title, "source": "open-agent"}
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        resp = await client.post("http://localhost:19827/clip", json=payload)
+        return "Ingested successfully." if resp.status_code == 200 else f"Error: {resp.status_code}"
 
 @agent.tool
 async def read_obsidian_note(ctx: RunContext, note_name: str) -> str:
@@ -2970,7 +2996,6 @@ async def _main_loop(runner: AgentRunner) -> None:
             import traceback
             traceback.print_exc()
         finally:
-                await _close_http_clients()
                 _db.close()
 
 
