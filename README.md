@@ -1,8 +1,21 @@
-A private, powerful & minimal LLM harness.
+<p align="center">
+<img width="800" height="427" alt="open-agent" src="https://github.com/user-attachments/assets/158d0850-b836-409f-9ace-f24c46c422f8" />
+</p>
 
-Allowing you to work in a stable and smooth environment with your Local LLMs. 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
+[![llama.cpp](https://img.shields.io/badge/Inference-llama.cpp-orange.svg)](https://github.com/ggml-org/llama.cpp)
+[![PydanticAI](https://img.shields.io/badge/Framework-PydanticAI-purple.svg)](https://ai.pydantic.dev)
 
-**No huge context required.**
+Open-Agent is a private, powerful & minimal LLM harness.
+
+Allowing you to work in a stable and smooth environment with your Local LLMs without huge computing power. 
+
+**No huge context required! Run efficient workflows locally. 
+
+Make sure to follow to guide!**
+
+---
 
 Quick structural breakdown of what Open-Agent is:
 
@@ -13,14 +26,6 @@ Quick structural breakdown of what Open-Agent is:
 - **Extensible Framework:** It is designed to be a platform where new tools and skills can be added easily to expand the agent's "superpowers."
 
 Your data never leaves your machine.
-
-<img width="800" height="427" alt="open-agent" src="https://github.com/user-attachments/assets/158d0850-b836-409f-9ace-f24c46c422f8" />
-
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
-[![llama.cpp](https://img.shields.io/badge/Inference-llama.cpp-orange.svg)](https://github.com/ggml-org/llama.cpp)
-[![PydanticAI](https://img.shields.io/badge/Framework-PydanticAI-purple.svg)](https://ai.pydantic.dev)
 
 **No cloud. No API bill. No rate limits.**
 
@@ -304,9 +309,7 @@ The 6 GB VRAM constraint is not a limitation. It is the design target. Everythin
 - New RSS sources → add to `RSS_SOURCES` dict
 - Behavioral changes → edit `SOUL.md`
 - New slash commands → add to `handle_slash()`
-
-Keep it minimal.
-
+---
 
 ## License
 
