@@ -192,11 +192,11 @@ We welcome contributors who push the boundaries of local AI.
 
 <div align="center">
 
-```
+<pre>
 ╔═════════════════════════════════════════════════════╗
 ║  MIT License · github.com/workspace-dex/open-agent  ║
 ╚═════════════════════════════════════════════════════╝
-```
+</pre>
 
 *Built for the community. Runs on your machine. Owned by you.*
 
