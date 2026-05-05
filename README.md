@@ -1,8 +1,16 @@
-Open-Agent is a local AI agent that runs entirely on your machine. One Python file, a handful of dependencies, and an LLM running locally via llama.cpp.
+Open-Agent. A private, powerful & minimal LLM harness.
 
-**Default context: 16,000 tokens.** Adjustable up to 64,000+ (on a single 6 GB GPU).
+Allowing you to work in a stable and smooth environment with you Local LLMs. 
 
-It searches the web, runs terminal commands, reads and writes files, fetches RSS feeds, pulls full pages, and does multi-query parallel research. It keeps persistent conversation history across sessions. It loads deep behavioral instructions only when needed — simple queries pay zero overhead.
+**No huge context required.**
+
+Quick structural breakdown of what Open-Agent is:
+
+- **Core Architecture:** It operates through a layered system consisting of a Runner (to initiate tasks), a Loop (to manage the iterative reasoning process), and a Renderer (to present outputs).
+- **Skill-Driven Design:** Instead of hardcoded logic, it uses a "skills" system (defined in .md files) that allows it to adopt specific workflows—such as brainstorming, software-development, or web-artifacts-building—through natural language instructions.
+- **Advanced Execution:** It supports sophisticated capabilities like parallel tool execution, hierarchical memory management, and enhanced reasoning loops (via the enhanced module).
+- **Local-First & Modular:** It is built to run directly on your machine, giving you full control over the environment, tools, and the agent's decision-making process.
+- **Extensible Framework:** It is designed to be a platform where new tools and skills can be added easily to expand the agent's "superpowers."
 
 Your data never leaves your machine.
 
@@ -25,13 +33,13 @@ Your data never leaves your machine.
 
 Most "local AI agent" projects are built for people with 24 GB GPUs, Node.js experience, and a tolerance for 200 MB of dependencies. They're impressive demos. They're not tools you use every day on real hardware.
 
-Open-Agent was built around a different constraint: **what is the minimum surface area you need to make a small model genuinely useful?**
+Open-Agent was built around a different constraint: **what is the minimum surface area you need to make a open-weight models genuinely useful for daily use?**
 
-The answer: a tight system prompt, real tools, smart context management, and the right model. Everything else is overhead.
+With *v1.1* realeased I can surely say this is turning out to be better than I expected. 
 
-The other thing local agents get wrong is context. They load skills, memories, behavioral instructions, and tool schemas before you've typed a word. On a 6 GB card, your context window is gone before the conversation starts.
+Unlike other "agents" this one actually works locally without any *64k minimum context requirements". This happends because these popular tools/agents/claws load skills, memories, behavioral instructions, and tool schemas before you've typed a word. On a 6 GB card (like mine), your context window is gone before the conversation starts.
 
-Open-Agent uses lazy loading. The system prompt is ~60 words. Deeper instructions live in `SOUL.md` and only enter context when the query is complex enough to need them.
+Open-Agent uses lazy loading so it runs on a minimal/efficient state by default. Deeper instructions live in `SOUL.md` and only enter context when the query is complex enough to need them.
 
 
 ## How It Compares
