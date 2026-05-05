@@ -1,6 +1,6 @@
 A private, powerful & minimal LLM harness.
 
-Allowing you to work in a stable and smooth environment with you Local LLMs. 
+Allowing you to work in a stable and smooth environment with your Local LLMs. 
 
 **No huge context required.**
 
