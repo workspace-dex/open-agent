@@ -162,10 +162,11 @@ RESET      = f"{ESC}[0m"
 BOLD       = f"{ESC}[1m"
 DIM        = f"{ESC}[2m"
 ITALIC     = f"{ESC}[3m"
+BRIGHT     = f"{ESC}[1;97m"   # bold bright white — glowing, replaces C_PURPLE everywhere
 C_CYAN     = f"{ESC}[38;5;117m"
 C_GREEN    = f"{ESC}[38;5;114m"
 C_AMBER    = f"{ESC}[38;5;214m"
-C_PURPLE   = f"{ESC}[38;5;183m"
+C_PURPLE   = BRIGHT             # remap C_PURPLE → BRIGHT so all existing uses auto-update
 C_TEAL     = f"{ESC}[38;5;115m"
 C_RED      = f"{ESC}[38;5;203m"
 C_SLATE    = f"{ESC}[38;5;60m"
@@ -232,7 +233,7 @@ def truncate_result(content: str, max_chars: Optional[int] = None) -> str:
 THEME = Theme({
     "agent":       "bold #7DCFFF",
     "user":        "bold #9ECE6A",
-    "tool.name":   "#BB9AF7",
+    "tool.name":   "bold bright_white",   # was #BB9AF7 purple
     "tool.ok":     "#9ECE6A",
     "tool.err":    "#F7768E",
     "tool.info":   "#73DACA",
@@ -2683,31 +2684,37 @@ def run_setup_wizard(cfg: Dict, first_run: bool = True) -> Dict:
 #  BANNER
 # ══════════════════════════════════════════════════════════════════════════
 
+# LOGO_WIDE = r"""
+#    ██████╗ ██████╗ ███████╗███╗   ██╗      █████╗  ██████╗ ███████╗███╗   ██╗████████╗
+#   ██╔═══██╗██╔══██╗██╔════╝████╗  ██║     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
+#   ██║   ██║██████╔╝█████╗  ██╔██╗ ██║████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
+#   ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║╚═══╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
+#   ╚██████╔╝██║     ███████╗██║ ╚████║     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
+#    ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+# """
+
 LOGO_WIDE = r"""
-   ██████╗ ██████╗ ███████╗███╗   ██╗      █████╗  ██████╗ ███████╗███╗   ██╗████████╗
-  ██╔═══██╗██╔══██╗██╔════╝████╗  ██║     ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
-  ██║   ██║██████╔╝█████╗  ██╔██╗ ██║████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
-  ██║   ██║██╔═══╝ ██╔══╝  ██║╚██╗██║╚═══╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
-  ╚██████╔╝██║     ███████╗██║ ╚████║     ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
-   ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═══╝     ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+┌───────────────────────────────────────────────────────────────┐
+│                                                               │
+│   ░░▒▒▓▓  █▀█ █▀█ █▀▀ █▄ █    ▄▀█ █▀▀ █▀▀ █▄ █ ▀█▀   ▓▓▒▒░░   │
+│   ░░▒▒▓▓  █▄█ █▀▀ ██▄ █ ▀█    █▀█ █▄█ ██▄ █ ▀█  █    ▓▓▒▒░░   │
+│                                                               │
+│       local-first · privacy-first · intelligence-driven       │
+│                                                               │
+└───────────────────────────────────────────────────────────────┘
 """
 
 LOGO_NARROW = """
-  ░█████╗░██████╗░███████╗███╗░░██╗
-  ██╔══██╗██╔══██╗██╔════╝████╗░██║
-  ██║░░██║██████╔╝█████╗░░██╔██╗██║
-  ██║░░██║██╔═══╝░██╔══╝░░██║╚████║
-  ╚█████╔╝██║░░░░░███████╗██║░╚███║
-  ░╚════╝░╚═╝░░░░░╚══════╝╚═╝░░╚══╝
-
-  ░█████╗░░██████╗░███████╗███╗░░██╗████████╗
-  ██╔══██╗██╔════╝░██╔════╝████╗░██║╚══██╔══╝
-  ███████║██║░░██╗░█████╗░░██╔██╗██║░░░██║░░░
-  ██╔══██║██║░░╚██╗██╔══╝░░██║╚████║░░░██║░░░
-  ██║░░██║╚██████╔╝███████╗██║░╚███║░░░██║░░░
-  ╚═╝░░╚═╝░╚═════╝░╚══════╝╚═╝░░╚══╝░░░╚═╝░░░
-
+┌─────────────────────────────────────────────────────┐
+│  ░▒▓ █▀█ █▀█ █▀▀ █▄ █ ▄▄ ▄▀█ █▀▀ █▀▀ █▄ █ ▀█▀ ▓▒░   │
+│  ░▒▓ █▄█ █▀▀ ██▄ █ ▀█    █▀█ █▄█ ██▄ █ ▀█  █  ▓▒░   │
+└─────────────────────────────────────────────────────┘
 """
+
+# ── ANSI constants ────────────────────────────────────────────────
+BRIGHT    = '\033[1;97m'  # bold bright white — glowing banner
+DIM       = '\033[2m'     # dark grey         — tagline / labels
+RESET     = '\033[0m'
 
 VERSION = "1.1"
 
@@ -2717,35 +2724,32 @@ def print_banner(session_id: str) -> None:
     if width >= 100:
         for line in LOGO_WIDE.splitlines():
             pad = max(0, (width - len(line)) // 2)
-            _w(f"{C_CYAN}{' ' * pad}{line}{RESET}\n")
+            _w(f"{BRIGHT}{' ' * pad}{line}{RESET}\n")
     else:
         lines = LOGO_NARROW.splitlines()
         mid = len(lines) // 2
         for i, line in enumerate(lines):
             pad = max(0, (width - len(line)) // 2)
-            color = C_CYAN if i <= mid else C_PURPLE
+            color = BRIGHT if i <= mid else DIM
             _w(f"{color}{' ' * pad}{line}{RESET}\n")
 
-    tagline = "Run capable AI on any laptop — private, free, yours."
-    pad = max(0, (width - len(tagline)) // 2)
-    _w(f"\n{' ' * pad}{DIM}{tagline}{RESET}\n\n")
+    tagline_left  = "Run capable AI on any laptop — "
+    tagline_right = (
+        f"{BRIGHT}private{RESET}{DIM}, {RESET}"
+        f"{BRIGHT}free{RESET}{DIM}, {RESET}"
+        f"{BRIGHT}yours{RESET}{DIM}.{RESET}"
+    )
+    pad = max(0, (width - len(tagline_left) - len("private, free, yours.")) // 2)
+    _w(f"\n{' ' * pad}{DIM}{tagline_left}{RESET}{tagline_right}\n\n")
 
-    tbl = Table(box=None, show_header=False, padding=(0, 1))
-    tbl.add_column(style="dim")
-    tbl.add_column(style="tool.name")
-    tbl.add_row("session", session_id)
-    tbl.add_row("version", VERSION)
-    console.print(Align.center(Panel(tbl, box=box.ROUNDED, border_style="border", padding=(0, 3))))
-
-    _w(f"\n  {DIM}Type[/] ")
-    _w(f"{C_PURPLE}/help{RESET}")
+    _w(f"\n  {DIM}Type{RESET} ")
+    _w(f"{BRIGHT}/help{RESET}")
     _w(f"  {DIM}·{RESET}  ")
-    _w(f"{C_PURPLE}/sessions{RESET}")
+    _w(f"{BRIGHT}/sessions{RESET}")
     _w(f"  {DIM}·{RESET}  ")
-    _w(f"{C_PURPLE}/exit{RESET}")
+    _w(f"{BRIGHT}/exit{RESET}")
     _w(f"  {DIM}to quit{RESET}\n\n")
-
-
+    
 # ══════════════════════════════════════════════════════════════════════════
 #  SLASH COMMANDS
 # ══════════════════════════════════════════════════════════════════════════
