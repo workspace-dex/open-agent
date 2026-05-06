@@ -57,31 +57,29 @@ That's it. The agent is live.
 
 Autonomous agent behavior demands a model capable of sustained reasoning and precise tool orchestration. Below is the recommended configuration.
 
-### ✦ Recommended: Gemma 4 26B · Q3 Quant
+### ✦ Recommended: Qwen 3.6 35B · Start with Q3 Quant
 
 *Current gold standard for local reasoning and tool use.*
 
 ```bash
 ./build/bin/llama-server \
-  -m /home/dex/models/gemma-4-26B-A4B-it-UD-IQ3_XXS.gguf \
+  -m /home/dex/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
   --host 0.0.0.0 --port 8083 \
-  -c 23000 \
-  --n-gpu-layers 21 \
+  --n-cpu-moe 28 \
+  -c 40000 \
+  --n-gpu-layers 99 \
   --override-tensor "blk\.(2[0-9]|3[0-9]|4[0-6])\.ffn_(gate_up|down)_exps\.weight=CPU" \
-  -b 512 -ub 128 \
+  -b 1042 -ub 512 \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
   --flash-attn on \
   --cont-batching \
-  --threads 6 --threads-batch 6 \
   --jinja \
   --reasoning auto \
-  --reasoning-budget-message " ...answer immediately based on the above thoughts.\n" \
-  --ctx-checkpoints 10 \
   --top-k 64 --top-p 0.95 \
   --temp 0.7 \
   --repeat-penalty 1.0 \
-  --no-warmup
+  --cache-prompt
 ```
 
 <div align="center">
