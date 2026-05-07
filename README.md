@@ -22,7 +22,7 @@
 
 <div align="center">
 
-> *"If removing a feature doesn't make the agent worse — it doesn't belong."*
+> *"The open-source agent that stays on your machine."*
 
 </div>
 
