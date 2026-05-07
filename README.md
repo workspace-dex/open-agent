@@ -65,20 +65,22 @@ Autonomous agent behavior demands a model capable of sustained reasoning and pre
 ./build/bin/llama-server \
   -m /home/dex/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
   --host 0.0.0.0 --port 8083 \
-  --n-cpu-moe 28 \
-  -c 40000 \
+  --n-cpu-moe 25 \   # reduce this to allocate more GPU space
+  -c 27000 \
   --n-gpu-layers 99 \
   --override-tensor "blk\.(2[0-9]|3[0-9]|4[0-6])\.ffn_(gate_up|down)_exps\.weight=CPU" \
-  -b 1042 -ub 512 \
+  -b 1442 -ub 512 \
   --cache-type-k q4_0 \
   --cache-type-v q4_0 \
   --flash-attn on \
   --cont-batching \
   --jinja \
-  --reasoning auto \
-  --top-k 64 --top-p 0.95 \
+  --reasoning off \   # --reasoning on for preserve thinking and coding
+  --top-k 20 \
+  --top-p 0.8 \
   --temp 0.7 \
-  --repeat-penalty 1.0 \
+  --repeat-penalty 1.05 \
+  --presence-penalty 1.5 \
   --cache-prompt
 ```
 
