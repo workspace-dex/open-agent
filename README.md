@@ -63,29 +63,37 @@ Autonomous agent behavior demands a model capable of sustained reasoning and pre
 
 ```bash
 ./build/bin/llama-server \
-  -m /home/dex/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
-  --host 0.0.0.0 --port 8083 \
-  --n-cpu-moe 25 \   # reduce this to allocate more GPU space
-  -c 27000 \
-  --n-gpu-layers 99 \
-  --override-tensor "blk\.(2[0-9]|3[0-9]|4[0-6])\.ffn_(gate_up|down)_exps\.weight=CPU" \
-  -b 1442 -ub 512 \
-  --cache-type-k q4_0 \
-  --cache-type-v q4_0 \
-  --flash-attn on \
-  --cont-batching \
-  --jinja \
-  --reasoning off \   # --reasoning on for preserve thinking and coding
-  --top-k 20 \
-  --top-p 0.8 \
-  --temp 0.7 \
-  --repeat-penalty 1.05 \
-  --presence-penalty 1.5 \
-  --cache-prompt
+-m /home/dex/models/Qwen3.6-35B-A3B-UD-IQ3_XXS.gguf \
+--host 0.0.0.0 \
+--port 8083 \
+--n-cpu-moe 25 \
+-c 27000 \
+--n-gpu-layers 99 \
+--override-tensor 'blk\.(2[0-9]|3[0-9]|4[0-6])\.ffn_(gate_up|down)_exps\.weight=CPU' \
+-b 1442 \
+-ub 512 \
+--cache-type-k q4_0 \
+--cache-type-v q4_0 \
+--flash-attn on \
+--cont-batching \
+--jinja \
+--reasoning off \
+--top-k 20 \
+--top-p 0.8 \
+--temp 0.7 \
+--repeat-penalty 1.05 \
+--presence-penalty 1.5 \
+--cache-prompt
 ```
+*Optimizations Note:*
+
+1. Use **--reasoning** auto for preserve thinking and coding
+
+2. Adjust **--n-cpu-moe 25**. Reduce this to allocate more GPU space.
+
 
 <div align="center">
-
+  
 | Flag | Why It Matters |
 |:---|:---|
 | `--override-tensor` (MoE CPU offload) | Runs massive mixture-of-experts models on consumer GPUs |
@@ -95,7 +103,6 @@ Autonomous agent behavior demands a model capable of sustained reasoning and pre
 | `--reasoning auto` | Activates chain-of-thought for complex multi-step tasks |
 
 </div>
----
 
 ## ◈ Core Capabilities
 
@@ -191,6 +198,9 @@ We welcome contributors who push the boundaries of local AI.
 - **Share a Skill** — Submit to the community Skill Gallery
 
 <div align="center">
+
+## ◈ Important Note
+- **To run open-agent Windows users will have to remove anything related to "import termios" from /open_agent/_impl.py
 
 <pre>
 ╔═════════════════════════════════════════════════════╗
