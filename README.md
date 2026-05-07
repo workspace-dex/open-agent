@@ -197,11 +197,12 @@ We welcome contributors who push the boundaries of local AI.
 - **Modify Behavior** — Refine the reasoning logic in `SOUL.md`
 - **Share a Skill** — Submit to the community Skill Gallery
 
-<div align="center">
-
 ## ◈ Important Note
 - **To run open-agent Windows users will have to remove anything related to "import termios" from /open_agent/_impl.py
 
+
+<div align="center">
+  
 <pre>
 ╔═════════════════════════════════════════════════════╗
 ║  MIT License · github.com/workspace-dex/open-agent  ║
