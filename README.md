@@ -89,7 +89,7 @@ Autonomous agent behavior demands a model capable of sustained reasoning and pre
 
 1. Use **--reasoning** auto for preserve thinking and coding
 
-2. Adjust **--n-cpu-moe 25**. Reduce this to allocate more GPU space.
+2. Adjust **--n-cpu-moe 25**. Increase this to allocate more GPU space.
 
 3. For lightweight, stable and reliable agentic work use **q8 quants** of any models you can fit.
 
