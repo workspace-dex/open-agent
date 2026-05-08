@@ -48,7 +48,7 @@ It combines structured reasoning, tool orchestration, and a markdown-driven skil
 ```bash
 # Activate your environment and launch
 source venv/bin/activate
-python open-agent.py
+python agent.py
 ```
 
 That's it. The agent is live.
