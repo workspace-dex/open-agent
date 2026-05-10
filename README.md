@@ -26,6 +26,7 @@
 
 </div>
 
+_**NOTE:** [Stable version]([url](https://github.com/workspace-dex/open-agent/releases/tag/stable-release)) released!_
 
 ## ◈ What is open-agent?
 
